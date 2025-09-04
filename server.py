@@ -29,7 +29,17 @@ class Attendance(BaseModel):
     deviceIdentifier: str
     notes: str | None = None
 
-load_dotenv()
+# Load layered config so each user can keep local creds without MCP env vars
+load_dotenv()  # .env in CWD
+from pathlib import Path
+cfg_dir = Path.home() / ".config" / "fsm-qa-mcp"
+if (cfg_dir / ".env").exists():
+    load_dotenv(cfg_dir / ".env", override=False)
+home_env = Path.home() / ".fsm-qa-mcp" / ".env"
+if home_env.exists():
+    load_dotenv(home_env, override=False)
+if os.getenv("FSM_QA_MCP_ENV_FILE"):
+    load_dotenv(os.getenv("FSM_QA_MCP_ENV_FILE"), override=True)
 app = FastMCP("fsm-qa-mcp-server")
 
 # Structured logging for all tool calls
@@ -100,10 +110,10 @@ def fse_checkin(input: Any):
     emp_id = str(emp_id).strip()
 
     # DB settings
-    db_host = os.getenv("DB_HOST", "10.104.41.139")
-    db_user = os.getenv("DB_USER", "fse_staging_user")
-    db_pass = os.getenv("DB_PASS", "FSeStc12!8799#beD*fvg")
-    db_name = os.getenv("DB_NAME", "fse_db_staging")
+    db_host = "10.104.41.139"
+    db_user = "fse_staging_user"
+    db_pass = "FSeStc12!8799#beD*fvg"
+    db_name = "fse_db_staging"
 
     insert_sql = (
         "INSERT INTO fse_checkin_checkout (status, fse_name, cust_id, emp_id, phone_number, check_in_time, "
@@ -147,8 +157,8 @@ def fse_checkin(input: Any):
         return {"ok": False, "error": "Insert appears to have succeeded but no row was fetched"}
     # After DB insert: clear redis key checkInStatus::YYYY-MM-DD_empId
     date_str = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
-    base_url = os.getenv("BASE_URL", "https://fse-staging.paytm.com").rstrip('/')
-    jwt_token = os.getenv("JWT_TOKEN") or DEFAULT_JWT
+    base_url = "https://fse-staging.paytm.com".rstrip('/')
+    jwt_token = DEFAULT_JWT
     redis_key = f"checkInStatus::{date_str}_{emp_id}"
     redis_url = f"{base_url}/fse/admin/redis/delete"
     redis_headers = {"x-jwt-token": jwt_token}
@@ -202,8 +212,8 @@ def beat_create(input: Any):
     except Exception as e:
         return {"ok": False, "error": f"Invalid input format: {e}"}
 
-    base_url = os.getenv("BASE_URL", "https://fse-staging.paytm.com").rstrip('/')
-    jwt_token = os.getenv("JWT_TOKEN") or DEFAULT_JWT
+    base_url = "https://fse-staging.paytm.com".rstrip('/')
+    jwt_token = DEFAULT_JWT
 
     dsn = _random_10_digits()
     ticket = _random_10_digits()
@@ -270,10 +280,10 @@ def beat_create(input: Any):
         return {"ok": False, "status": resp.status_code, "response": body, "logs": logs}
 
     # DB validation
-    db_host = os.getenv("DB_HOST", "10.104.41.139")
-    db_user = os.getenv("DB_USER", "fse_staging_user")
-    db_pass = os.getenv("DB_PASS", "FSeStc12!8799#beD*fvg")
-    db_name = os.getenv("DB_NAME", "fse_db_staging")
+    db_host = "10.104.41.139"
+    db_user = "fse_staging_user"
+    db_pass = "FSeStc12!8799#beD*fvg"
+    db_name = "fse_db_staging"
 
     query = (
         "SELECT id, created_at FROM fse_beat_mapping "
@@ -311,3 +321,6 @@ if __name__ == "__main__":
     asyncio.run(app.run_http_async(host="127.0.0.1", port=8100, path="/fsm-qa-mcp-server"))
 
  
+def run_stdio():
+    """Console entry for uvx: starts MCP over stdio transport."""
+    asyncio.run(app.run_stdio_async())

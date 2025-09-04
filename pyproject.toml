@@ -9,3 +9,6 @@ dependencies = [
     "mcp>=1.13.1",
     "pymysql>=1.1.2",
 ]
+
+[project.scripts]
+fsm-qa-mcp = "server:run_stdio"
