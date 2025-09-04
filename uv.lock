@@ -315,9 +315,9 @@ wheels = [
 ]
 
 [[package]]
-name = "fsm-qa-mcp-server"
+name = "fsm-qa-mcp"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "mcp" },
